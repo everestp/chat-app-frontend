@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import SendIcon from '@mui/icons-material/Send';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
+import SendIcon from "@mui/icons-material/Send";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
 import useChatContext from "../context/ChatContext";
 import { useNavigate } from "react-router";
 import SockJS from "sockjs-client";
@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import { baseURL } from "../config/AxiosHelper";
 import { getMessagess } from "../services/RoomService";
 import { timeAgo } from "../config/helper";
+
 const ChatPage = () => {
   const {
     roomId,
@@ -18,9 +19,6 @@ const ChatPage = () => {
     setRoomId,
     setCurrentUser,
   } = useChatContext();
-  // console.log(roomId);
-  // console.log(currentUser);
-  // console.log(connected);
 
   const navigate = useNavigate();
   useEffect(() => {
@@ -35,24 +33,22 @@ const ChatPage = () => {
   const chatBoxRef = useRef(null);
   const [stompClient, setStompClient] = useState(null);
 
-  //page init:
-  //messages ko load karne honge
-
+  // Load messages
   useEffect(() => {
     async function loadMessages() {
       try {
         const messages = await getMessagess(roomId);
-        // console.log(messages);
         setMessages(messages);
-      } catch (error) {}
+      } catch (error) {
+        console.error("Failed to load messages:", error);
+      }
     }
     if (connected) {
       loadMessages();
     }
   }, []);
 
-  //scroll down
-
+  // Scroll to latest message
   useEffect(() => {
     if (chatBoxRef.current) {
       chatBoxRef.current.scroll({
@@ -62,28 +58,18 @@ const ChatPage = () => {
     }
   }, [messages]);
 
-  //stompClient ko init karne honge
-  //subscribe
-
+  // Connect WebSocket and subscribe
   useEffect(() => {
     const connectWebSocket = () => {
-      ///SockJS
       const sock = new SockJS(`${baseURL}/chat`);
       const client = Stomp.over(sock);
 
       client.connect({}, () => {
         setStompClient(client);
-
-        toast.success("connected");
-
+        toast.success("Connected");
         client.subscribe(`/topic/room/${roomId}`, (message) => {
-          console.log(message);
-
           const newMessage = JSON.parse(message.body);
-
           setMessages((prev) => [...prev, newMessage]);
-
-          //rest of the work after success receiving the message
         });
       });
     };
@@ -91,16 +77,11 @@ const ChatPage = () => {
     if (connected) {
       connectWebSocket();
     }
-
-    //stomp client
   }, [roomId]);
 
-  //send message handle
-
+  // Send message handler
   const sendMessage = async () => {
     if (stompClient && connected && input.trim()) {
-      console.log(input);
-
       const message = {
         sender: currentUser,
         content: input,
@@ -114,96 +95,101 @@ const ChatPage = () => {
       );
       setInput("");
     }
-
-    //
   };
 
-  function handleLogout() {
-    stompClient.disconnect();
+  // Logout handler
+  const handleLogout = () => {
+    if (stompClient) stompClient.disconnect();
     setConnected(false);
     setRoomId("");
     setCurrentUser("");
     navigate("/");
-  }
+  };
 
   return (
-    <div className="">
-      {/* this is a header */}
-      <header className="dark:border-gray-700  fixed w-full dark:bg-gray-900 py-5 shadow flex justify-around items-center">
-        {/* room name container */}
-        <div>
-          <h1 className="text-xl font-semibold">
-            Room : <span>{roomId}</span>
+    <div className="flex flex-col h-screen">
+      {/* Header */}
+      <header className="fixed top-0 w-full bg-gray-900 py-4 shadow-lg flex flex-wrap justify-around items-center">
+        <div className="text-center mb-2 md:mb-0">
+          <h1 className="text-lg md:text-xl font-semibold text-white">
+            Room: <span className="font-light">{roomId}</span>
           </h1>
         </div>
-        {/* username container */}
-
-        <div>
-          <h1 className="text-xl font-semibold">
-            User : <span>{currentUser}</span>
+        <div className="text-center mb-2 md:mb-0">
+          <h1 className="text-lg md:text-xl font-semibold text-white">
+            User: <span className="font-light">{currentUser}</span>
           </h1>
         </div>
-        {/* button: leave room */}
         <div>
           <button
             onClick={handleLogout}
-            className="dark:bg-red-500 dark:hover:bg-red-700 px-3 py-2 rounded-full"
+            className="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded-full"
           >
             Leave Room
           </button>
         </div>
       </header>
 
+      {/* Chat Area */}
       <main
         ref={chatBoxRef}
-        className="py-20 px-10   w-2/3 dark:bg-slate-600 mx-auto h-screen overflow-auto "
+        className="flex-grow pt-20 px-4 pb-16 overflow-auto bg-gray-800"
       >
         {messages.map((message, index) => (
-         <div key={index} className={`flex px-5 ${message.sender === currentUser  ? "justify-end" : "justify-start"}`}>
-         <div className={`my-2 p-3 max-w-md rounded-lg shadow-md flex gap-3 
-                         ${message.sender === currentUser  ? "bg-blue-600 text-white" : "bg-gray-500 text-white"}`}>
-           
-         
-             <img
-               className="h-10 w-10 rounded-full border border-gray-300"
-               src="https://avatar.iran.liara.run/public"
-               alt="avatar"
-             />
-           
-     
-           <div className="flex flex-col">
-             <p className="font-semibold">{message.sender}</p>
-             <p className="text-sm">{message.content}</p>
-             <p className="text-xs text-gray-300 mt-1">
-             {timeAgo(message.timeStamp)}
-             </p>
-           </div>
-         </div>
-       </div>
+          <div
+            key={index}
+            className={`flex mb-4 ${
+              message.sender === currentUser ? "justify-end" : "justify-start"
+            }`}
+          >
+            <div
+              className={`p-4 rounded-lg shadow-md flex items-start gap-3 ${
+                message.sender === currentUser
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-700 text-white"
+              }`}
+            >
+              <img
+                className="h-8 w-8 rounded-full border border-gray-300"
+                src="https://avatar.iran.liara.run/public"
+                alt="avatar"
+              />
+              <div>
+                <p className="font-medium">{message.sender}</p>
+                <p className="text-sm">{message.content}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {timeAgo(message.timeStamp)}
+                </p>
+              </div>
+            </div>
+          </div>
         ))}
       </main>
-      {/* input message container */}
-      <div className=" fixed bottom-4 w-full h-16 ">
-        <div className="h-full  pr-10 gap-4 flex items-center justify-between rounded-full w-1/2 mx-auto dark:bg-gray-900">
+
+      {/* Input Section */}
+      <div className="fixed bottom-0 w-full bg-gray-900 py-3 px-4">
+        <div className="flex items-center gap-3 rounded-lg bg-gray-700 p-3">
           <input
             value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-            }}
+            onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                sendMessage();
-              }
+              if (e.key === "Enter") sendMessage();
             }}
             type="text"
-            placeholder="Type your message here..."
-            className=" w-full  dark:border-gray-600 b dark:bg-gray-800  px-5 py-2 rounded-full h-full focus:outline-none  "
+            placeholder="Type your message..."
+            className="flex-grow px-3 py-2 bg-gray-800 text-white rounded-lg focus:outline-none"
           />
-
-          <div className="flex gap-1">
-          <button className="dark:bg-green-600 px-3 py-3  rounded-full"><AttachFileIcon /></button>
-          <button onClick={sendMessage} className="dark:bg-blue-600 px-3 py-3  rounded-full"><SendIcon/></button>
-          </div>
+          <button
+            className="bg-green-600 hover:bg-green-700 p-3 rounded-lg text-white"
+          >
+            <AttachFileIcon />
+          </button>
+          <button
+            onClick={sendMessage}
+            className="bg-blue-600 hover:bg-blue-700 p-3 rounded-lg text-white"
+          >
+            <SendIcon />
+          </button>
         </div>
       </div>
     </div>

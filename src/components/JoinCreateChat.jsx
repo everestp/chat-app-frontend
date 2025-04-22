@@ -1,10 +1,9 @@
-import React, { useState } from 'react'
-import { Button, colors, TextField } from '@mui/material'
-
-import toast from 'react-hot-toast'
+import React, { useState } from "react";
+import { Button, TextField } from "@mui/material";
+import toast from "react-hot-toast";
 import { createRoomApi, joinChatApi } from "../services/RoomService";
-import useChatContext from '../context/ChatContext'
-import { useNavigate } from 'react-router'
+import useChatContext from "../context/ChatContext";
+import { useNavigate } from "react-router";
 
 const JoinCreateChat = () => {
   const [detail, setDetail] = useState({
@@ -12,8 +11,7 @@ const JoinCreateChat = () => {
     userName: "",
   });
 
-  const { roomId, userName, setRoomId, setCurrentUser, setConnected } =
-    useChatContext();
+  const { setRoomId, setCurrentUser, setConnected } = useChatContext();
   const navigate = useNavigate();
 
   function handleFormInputChange(event) {
@@ -24,8 +22,8 @@ const JoinCreateChat = () => {
   }
 
   function validateForm() {
-    if (detail.roomId === "" || detail.userName === "") {
-      toast.error("Invalid Input !!");
+    if (detail.roomId.trim() === "" || detail.userName.trim() === "") {
+      toast.error("Invalid Input! Please fill in all fields.");
       return false;
     }
     return true;
@@ -33,111 +31,104 @@ const JoinCreateChat = () => {
 
   async function joinChat() {
     if (validateForm()) {
-      //join chat
-
       try {
         const room = await joinChatApi(detail.roomId);
-        toast.success("joined..");
+        toast.success("Joined successfully!");
         setCurrentUser(detail.userName);
         setRoomId(room.roomId);
         setConnected(true);
         navigate("/chat");
       } catch (error) {
-        if (error.status == 400) {
+        if (error.response?.status === 400) {
           toast.error(error.response.data);
         } else {
-          toast.error("Error in joining room");
+          toast.error("Error joining the room. Please try again.");
         }
-        console.log(error);
+        console.error(error);
       }
     }
   }
 
   async function createRoom() {
     if (validateForm()) {
-      //create room
-      console.log(detail);
-      // call api to create room on backend
       try {
         const response = await createRoomApi(detail.roomId);
-        console.log(response);
-        toast.success("Room Created Successfully !!");
-        //join the room
+        toast.success("Room created successfully!");
         setCurrentUser(detail.userName);
         setRoomId(response.roomId);
         setConnected(true);
-
         navigate("/chat");
-
-        //forward to chat page...
       } catch (error) {
-        console.log(error);
-        if (error.status == 400) {
-          toast.error("Room  already exists !!");
+        if (error.response?.status === 400) {
+          toast.error("Room already exists!");
         } else {
-          toast("Error in creating room");
+          toast.error("Error creating the room. Please try again.");
         }
+        console.error(error);
       }
     }
   }
 
-
-
-
-
-
-
-
-
-
   return (
-    <>
-    <div className=' min-h-screen  flex justify-center items-center '>
-    <div className="p-8 w-full flex flex-col gap-8 max-w-md dark:bg-gray-900 shadow">
-<h1 className='text-2xl font-bold text-center '>Join Room/Create Room...</h1>
-<div>
-
-<label htmlFor="" className='block font-medium'>Your name</label>
-<TextField
-onChange={handleFormInputChange}
-value={detail.name}
-placeholder='Enter the name'
-id='name'
-name='userName'
-className='dark:bg-gray-600 px-4 py-2 border dark:border-gray-900 rounded focus:outline-none'
-fullWidth
-  // label="Name"
-/>
-</div>
-
-{/* room id */}
-<div>
-
-<label htmlFor="" className='block font-medium'>Room ID</label>
-<TextField
-value={detail.roomId}
-placeholder='Enter the RoomId'
-id='roomId'
-name='roomId'
-onChange={handleFormInputChange}
-className='dark:bg-gray-600 px-4 py-2 border dark:border-gray-300 rounded focus:outline-none'
-fullWidth
-  label="Room ID"
-/>
-</div>
-<div className='flex  justify-between'>
-  <Button onClick={joinChat} variant='contained'>Join</Button>
-  <Button onClick={createRoom} color="success" variant='contained'>Create</Button>
-</div>
-
+    <div className="min-h-screen flex justify-center items-center bg-gray-100 dark:bg-gray-900">
+      <div className="p-6 w-full max-w-md flex flex-col gap-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+        <h1 className="text-2xl font-bold text-center text-gray-800 dark:text-white">
+          Join/Create Room
+        </h1>
+        {/* Username Input */}
+        <div>
+          <label htmlFor="userName" className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
+            Your Name
+          </label>
+          <TextField
+            onChange={handleFormInputChange}
+            value={detail.userName}
+            placeholder="Enter your name"
+            id="userName"
+            name="userName"
+            variant="outlined"
+            fullWidth
+            className="dark:bg-gray-700"
+          />
+        </div>
+        {/* Room ID Input */}
+        <div>
+          <label htmlFor="roomId" className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
+            Room ID
+          </label>
+          <TextField
+            onChange={handleFormInputChange}
+            value={detail.roomId}
+            placeholder="Enter the Room ID"
+            id="roomId"
+            name="roomId"
+            variant="outlined"
+            fullWidth
+            className="dark:bg-gray-700"
+          />
+        </div>
+        {/* Buttons */}
+        <div className="flex justify-between">
+          <Button
+            onClick={joinChat}
+            variant="contained"
+            color="primary"
+            className="w-full mr-2"
+          >
+            Join
+          </Button>
+          <Button
+            onClick={createRoom}
+            variant="contained"
+            color="success"
+            className="w-full ml-2"
+          >
+            Create
+          </Button>
+        </div>
+      </div>
     </div>
-    </div>
-   
-    
-    
-    
-    </>
-  )
-}
+  );
+};
 
-export default JoinCreateChat
+export default JoinCreateChat;
